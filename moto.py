@@ -251,10 +251,10 @@ else:
         col_info1, col_info2 = st.columns(2)
         
         with col_info1:
-            nombre = st.text_input("📝 Nombre completo*", key="nombre_usuario")
+            nombre = st.text_input(r"$\textsf{\Large 📝 Nombre completo*}$", key="nombre_usuario")
         
         with col_info2:
-            cedula = st.text_input("🆔 Número de cédula*", key="cedula_usuario")
+            cedula = st.text_input(r"$\textsf{\Large🆔 Número de cédula*}$", key="cedula_usuario")
         
         st.markdown("---")
         
@@ -276,10 +276,28 @@ else:
                 pregunta_id = row["ID"]
                 
                 st.markdown(f"### Pregunta {idx + 1} (ID: {pregunta_id})")
+                
+                # HTML con word-wrap controlado
+                st.markdown(f"""
+                <div style="
+                    font-size: 24px; 
+                    font-weight: bold; 
+                    margin: 15px 0;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    white-space: normal;
+                    max-width: 100%;
+                    line-height: 1.3;
+                ">
+                    {pregunta}
+                </div>
+                """, unsafe_allow_html=True)
+                
                 respuesta = st.selectbox(
-                    f"## {pregunta}", 
+                    "",  # Label vacío
                     ['Selecciona una opción...'] + opciones, 
-                    key=f"pregunta_{idx}"
+                    key=f"pregunta_{idx}",
+                    label_visibility="collapsed"
                 )
                 
                 if respuesta != 'Selecciona una opción...':
