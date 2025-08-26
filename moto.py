@@ -4,6 +4,13 @@ import os
 from datetime import datetime
 from supabase import create_client, Client
 
+# Configuración de página (debe ser lo primero)
+st.set_page_config(
+    page_title="Evaluación Motorola",
+    page_icon="https://p1-ofp.static.pub//fes/cms/2025/06/16/w6mug9uerf66dejn1o22wi56qonflp942007.svg",
+    layout="wide"
+)
+
 # Configuración de Supabase
 SUPABASE_CONFIG = {
     'url': "https://iixjbkmpasbordjuairl.supabase.co",
@@ -208,6 +215,26 @@ if 'puntaje_final' not in st.session_state:
 if 'calificacion_final' not in st.session_state:
     st.session_state.calificacion_final = 0.0
 
+st.markdown("""
+<div style="
+    display: flex;
+    margin: 10px 0;
+">
+    <div style="
+        background-color: white;
+        center-align: center;
+        padding: 10px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e0e0e0;
+        display: inline-block;
+    ">
+        <img src="https://p1-ofp.static.pub/fes/cms/2025/06/16/w6mug9uerf66dejn1o22wi56qonflp942007.svg" 
+             width="300" 
+             style="display: block;">
+    </div>
+</div>
+""", unsafe_allow_html=True)
 # Interfaz principal
 st.title("📝 Formulario de Evaluación")
 st.markdown("---")
