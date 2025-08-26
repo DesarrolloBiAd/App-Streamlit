@@ -277,7 +277,7 @@ else:
                 
                 st.markdown(f"### Pregunta {idx + 1} (ID: {pregunta_id})")
                 respuesta = st.selectbox(
-                    f"{pregunta}", 
+                    f"## {pregunta}", 
                     ['Selecciona una opción...'] + opciones, 
                     key=f"pregunta_{idx}"
                 )
