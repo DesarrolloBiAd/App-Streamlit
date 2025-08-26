@@ -7,7 +7,7 @@ from supabase import create_client, Client
 # Configuración de página (debe ser lo primero)
 st.set_page_config(
     page_title="Evaluación Motorola",
-    page_icon="https://p1-ofp.static.pub//fes/cms/2025/06/16/w6mug9uerf66dejn1o22wi56qonflp942007.svg",
+    page_icon="https://p3-ofp.static.pub//fes/cms/2025/01/16/7aiyjr6t3hszpzvsfnbwip54i0ovkz395647.png",
     layout="wide"
 )
 
