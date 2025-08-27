@@ -645,7 +645,7 @@ else:
                 st.markdown("---")
                 
                 # Mostrar la pregunta con tarjeta adaptativa
-                st.markdown(f"### Pregunta {pregunta_idx + 1} (ID: {pregunta_id})")
+                st.markdown(f"### Pregunta {pregunta_idx + 1}")
                 
                 st.markdown(f"""
                 <div class="question-card card-adaptive">
