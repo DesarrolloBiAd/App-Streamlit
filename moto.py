@@ -60,14 +60,43 @@ def obtener_estilo_tema():
         background-color: var(--card-bg);
         color: var(--text-color);
         border-left: 5px solid #007bff;
-        font-size: 24px;
+        font-size: 18px;
         font-weight: bold;
-        line-height: 1.3;
+        line-height: 1.5;
         word-wrap: break-word;
         overflow-wrap: break-word;
         white-space: normal;
         max-width: 100%;
+        min-height: auto;
+        height: auto;
         padding: 20px;
+        box-sizing: border-box;
+        text-align: justify;
+        hyphens: auto;
+        border-radius: 10px;
+        margin: 15px 0;
+    }
+    
+    /* Estilos específicos para preguntas largas */
+    .question-card p {
+        margin: 0;
+        padding: 0;
+        font-size: 18px;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+    
+    /* Responsive para preguntas */
+    @media (max-width: 768px) {
+        .question-card {
+            font-size: 16px;
+            padding: 15px;
+        }
+        
+        .question-card p {
+            font-size: 16px;
+            line-height: 1.4;
+        }
     }
     
     .logo-container {
@@ -220,7 +249,7 @@ def cargar_preguntas():
             return pd.DataFrame()
         
         # Leer el archivo Excel
-        df = pd.read_excel(ruta_archivo, engine='openpyxl', header=0)
+        df = pd.read_excel(ruta_archivo, engine='openpyxl', header=0,dtype=str)
         
         # Normalizar nombres de columnas (eliminar espacios y convertir a mayúsculas)
         df.columns = df.columns.str.strip().str.upper()
@@ -253,9 +282,23 @@ def cargar_preguntas():
         # Procesar la columna de opciones
         if 'OPCIONES' in df.columns:
             def procesar_opciones(x):
-                if pd.isna(x):
+                if pd.isna(x) or x is None or str(x).strip() == '' or str(x).lower() == 'nan':
                     return ['Opción A', 'Opción B', 'Opción C', 'Opción D']  # Opciones por defecto
-                return [op.strip() for op in str(x).split(';') if op.strip()]
+                
+                # Convertir a string y limpiar
+                opciones_str = str(x).strip()
+                
+                # Dividir por punto y coma y limpiar cada opción
+                opciones = [op.strip() for op in opciones_str.split(';')]
+                
+                # Filtrar opciones vacías
+                opciones_filtradas = [op for op in opciones if op and op != '']
+                
+                # Si no hay opciones válidas después del filtrado, usar opciones por defecto
+                if not opciones_filtradas:
+                    return ['Opción A', 'Opción B', 'Opción C', 'Opción D']
+                
+                return opciones_filtradas
             
             df['OPCIONES'] = df['OPCIONES'].apply(procesar_opciones)
         
