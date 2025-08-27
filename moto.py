@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from supabase import create_client, Client
 import time
 import random
+import asyncio
+import threading
 
 # Configuración de página (debe ser lo primero)
 st.set_page_config(
@@ -33,6 +35,25 @@ def obtener_estilo_tema():
         color: var(--text-color);
         border-left: 5px solid #1f77b4;
         text-align: center;
+    }
+    
+    .timer-card-warning {
+        background-color: #fff3cd;
+        border-left: 5px solid #ffc107;
+        color: #856404;
+    }
+    
+    .timer-card-danger {
+        background-color: #f8d7da;
+        border-left: 5px solid #dc3545;
+        color: #721c24;
+        animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
     }
     
     .question-card {
@@ -147,6 +168,18 @@ def obtener_estilo_tema():
         padding: 10px;
         border-radius: 5px;
         margin: 10px 0;
+    }
+    
+    .auto-refresh {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        z-index: 1000;
     }
     </style>
     """
@@ -282,7 +315,7 @@ def guardar_respuestas_supabase(nombre, cedula, respuestas_dict, preguntas_df, p
                 'opcion_correcta': respuesta_correcta,
                 'es_correcta': bool(es_correcta),
                 'Calificacion': int(puntaje_total),
-                'tiempo_total': int(tiempo_total),  # Nueva línea
+                'tiempo_total': int(tiempo_total),
                 'fecha_evaluacion': fecha_evaluacion
             }
             
@@ -327,7 +360,7 @@ def validar_cedula_numerica(cedula):
     """Validar que la cédula contenga solo números"""
     return cedula.isdigit() and len(cedula) >= 6
 
-# ========= FUNCIONES PARA EL TEMPORIZADOR =========
+# ========= FUNCIONES PARA EL TEMPORIZADOR OPTIMIZADO =========
 def inicializar_temporizador():
     """Inicializa el temporizador para la evaluación"""
     if 'tiempo_inicio_evaluacion' not in st.session_state:
@@ -338,8 +371,10 @@ def inicializar_temporizador():
         st.session_state.tiempo_inicio_pregunta = time.time()
     if 'tiempos_preguntas' not in st.session_state:
         st.session_state.tiempos_preguntas = {}
-    # Nueva línea para capturar tiempo total
-    st.session_state.tiempo_inicio_total = time.time()
+    if 'tiempo_inicio_total' not in st.session_state:
+        st.session_state.tiempo_inicio_total = time.time()
+    if 'auto_refresh_active' not in st.session_state:
+        st.session_state.auto_refresh_active = True
 
 def tiempo_restante_pregunta():
     """Calcula el tiempo restante para la pregunta actual (30 segundos)"""
@@ -364,6 +399,35 @@ def calcular_tiempo_total_evaluacion():
         tiempo_total = time.time() - st.session_state.tiempo_inicio_total
         return int(tiempo_total)  # Retorna en segundos como entero
     return 0
+
+def crear_display_temporizador_optimizado(tiempo_restante):
+    """Crea un display de temporizador optimizado"""
+    # Determinar estado del temporizador
+    if tiempo_restante > 15:
+        estado = "success"
+        color = "🟢"
+        clase_extra = ""
+    elif tiempo_restante > 5:
+        estado = "warning"
+        color = "🟡"
+        clase_extra = "timer-card-warning"
+    else:
+        estado = "danger"
+        color = "🔴"
+        clase_extra = "timer-card-danger"
+    
+    # Calcular porcentaje para barra de progreso
+    porcentaje = (tiempo_restante / 30) * 100
+    
+    return f"""
+    <div class="card-adaptive timer-card {clase_extra}">
+        <h3 style="margin: 0;">{color} Tiempo restante</h3>
+        <h2 style="margin: 5px 0; color: #1f77b4;">{formatear_tiempo(tiempo_restante)}</h2>
+        <div style="width: 100%; background-color: #e0e0e0; border-radius: 10px; height: 10px; margin: 10px 0;">
+            <div style="width: {porcentaje}%; background-color: {'#4CAF50' if estado == 'success' else '#FFC107' if estado == 'warning' else '#f44336'}; height: 100%; border-radius: 10px; transition: width 0.3s ease;"></div>
+        </div>
+    </div>
+    """
 
 # ========= INICIALIZAR ESTADO DE LA SESIÓN =========
 if 'preguntas_seleccionadas' not in st.session_state:
@@ -486,7 +550,7 @@ else:
             else:
                 st.warning("⚠️ Por favor, completa tu información personal correctamente antes de continuar.")
         
-        # ========= SECCIÓN DE EVALUACIÓN CON TEMPORIZADOR =========
+        # ========= SECCIÓN DE EVALUACIÓN CON TEMPORIZADOR OPTIMIZADO =========
         else:
             # Mostrar información del usuario con tarjeta adaptativa
             st.markdown(f"""
@@ -504,7 +568,7 @@ else:
             preguntas_respondidas = len(st.session_state.respuestas_evaluacion)
             
             if st.session_state.pregunta_actual < total_preguntas:
-                # ========= MOSTRAR PREGUNTA ACTUAL =========
+                # ========= MOSTRAR PREGUNTA ACTUAL CON TEMPORIZADOR =========
                 pregunta_idx = st.session_state.pregunta_actual
                 row = st.session_state.preguntas_seleccionadas.iloc[pregunta_idx]
                 
@@ -519,25 +583,21 @@ else:
                 col_timer, col_progress = st.columns([1, 3])
                 
                 with col_timer:
-                    if tiempo_restante > 10:
-                        color = "🟢"
-                    elif tiempo_restante > 5:
-                        color = "🟡"
-                    else:
-                        color = "🔴"
-                    
-                    st.markdown(f"""
-                    <div class="card-adaptive timer-card">
-                        <h3 style="margin: 0;">{color} Tiempo restante</h3>
-                        <h2 style="margin: 5px 0; color: #1f77b4;">{formatear_tiempo(tiempo_restante)}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # Display optimizado del temporizador
+                    st.markdown(crear_display_temporizador_optimizado(tiempo_restante), unsafe_allow_html=True)
                 
                 with col_progress:
                     # Mostrar progreso general
                     progreso_general = (pregunta_idx + 1) / total_preguntas
-                    st.progress(progreso_general)
-                    st.text(f"Pregunta {pregunta_idx + 1} de {total_preguntas}")
+                    st.progress(progreso_general, text=f"Pregunta {pregunta_idx + 1} de {total_preguntas}")
+                    
+                    # Mostrar estadísticas adicionales
+                    col_stats1, col_stats2 = st.columns(2)
+                    with col_stats1:
+                        st.metric("Respondidas", len(st.session_state.respuestas_evaluacion))
+                    with col_stats2:
+                        tiempo_total_transcurrido = calcular_tiempo_total_evaluacion()
+                        st.metric("Tiempo total", formatear_tiempo(tiempo_total_transcurrido))
                 
                 st.markdown("---")
                 
@@ -585,7 +645,7 @@ else:
                 if tiempo_restante <= 0:
                     st.markdown("""
                     <div class="card-adaptive info-error">
-                        <strong>⏰ ¡Tiempo agotado para esta pregunta!</strong>
+                        <strong>⏰ ¡Tiempo agotado! Avanzando automáticamente...</strong>
                     </div>
                     """, unsafe_allow_html=True)
                     
@@ -595,14 +655,26 @@ else:
                     else:
                         st.session_state.respuestas_evaluacion[pregunta] = respuesta
                     
-                    # Auto-avanzar
-                    time.sleep(1)  # Pausa breve para mostrar el mensaje
+                    # Auto-avanzar con delay
+                    time.sleep(2)  # Pausa de 2 segundos para mostrar el mensaje
                     avanzar_pregunta()
                     st.rerun()
                 
-                # Auto-refresh cada segundo para actualizar el temporizador
-                time.sleep(1)
-                st.rerun()
+                # Auto-refresh cada 1 segundo para actualizar el temporizador
+                if st.session_state.get('auto_refresh_active', True):
+                    # Mostrar indicador de auto-refresh
+                    st.markdown(f"""
+                    <div class="auto-refresh">
+                        ⏱️ Actualizando... {formatear_tiempo(tiempo_restante)}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Usar un placeholder para actualización más suave
+                    placeholder = st.empty()
+                    with placeholder:
+                        time.sleep(1)  # Esperar 1 segundo
+                        if tiempo_restante > 1:  # Solo hacer rerun si queda tiempo
+                            st.rerun()
             
             else:
                 # ========= EVALUACIÓN COMPLETADA =========
@@ -628,8 +700,17 @@ else:
                 with col_res3:
                     st.metric("📊 Total", total_preguntas)
                 
+                # Mostrar detalle de respuestas
+                # with st.expander("📝 Ver detalle de respuestas"):
+                #     for i, (pregunta, respuesta) in enumerate(st.session_state.respuestas_evaluacion.items(), 1):
+                #         estado = "✅" if respuesta != "Sin respuesta" else "❌"
+                #         st.write(f"{estado} **Pregunta {i}:** {respuesta}")
+                
                 # Botón para finalizar evaluación
                 if st.button("💾 Finalizar y Guardar Evaluación", type="primary"):
+                    # Detener auto-refresh
+                    st.session_state.auto_refresh_active = False
+                    
                     with st.spinner("Guardando evaluación..."):
                         # Calcular puntaje y calificación
                         puntaje, calificacion = calcular_puntaje_y_calificacion(
@@ -643,7 +724,7 @@ else:
                         tiempo_total = calcular_tiempo_total_evaluacion()
                         st.session_state.tiempo_total_evaluacion = tiempo_total
                         
-                        # Guardar en Supabase (ahora con tiempo total)
+                        # Guardar en Supabase
                         guardado_exitoso = guardar_respuestas_supabase(
                             st.session_state.nombre_final,
                             st.session_state.cedula_final,
@@ -651,7 +732,7 @@ else:
                             st.session_state.preguntas_seleccionadas,
                             puntaje,
                             calificacion,
-                            tiempo_total  # Nuevo parámetro
+                            tiempo_total
                         )
                         
                         if guardado_exitoso:
@@ -663,13 +744,15 @@ else:
     
     else:
         # ========= PANTALLA DE RESULTADOS =========
+        # Detener auto-refresh
+        st.session_state.auto_refresh_active = False
+        
         st.success("✅ **¡Formulario completado exitosamente!**")
         st.balloons()
 
         # Mostrar puntaje con tarjeta adaptativa
         st.markdown("## 🏆 Resultados de la Evaluación")
 
-        # En la sección de resultados, después del puntaje:
         st.markdown(f"""
         <div class="gradient-card">
             <h3>Puntaje Final</h3>
@@ -683,28 +766,94 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("""
-        ### ¡Gracias por completar la evaluación!
-        ✅ Tus respuestas han sido guardadas en la base de datos  
-        ✅ Tu puntaje ha sido registrado  
-        ✅ Los datos están disponibles para análisis  
-        """)
+        # # Mostrar análisis detallado
+        # st.markdown("## 📊 Análisis Detallado")
+        
+        # col_analisis1, col_analisis2, col_analisis3 = st.columns(3)
+        
+        # with col_analisis1:
+        #     st.metric(
+        #         "Preguntas Correctas", 
+        #         st.session_state.puntaje_final,
+        #         delta=f"{st.session_state.puntaje_final - 7.5:.1f}" if st.session_state.puntaje_final >= 7.5 else f"{st.session_state.puntaje_final - 7.5:.1f}"
+        #     )
+        
+        # with col_analisis2:
+        #     porcentaje = (st.session_state.puntaje_final/15)*100
+        #     st.metric(
+        #         "Porcentaje de Aciertos", 
+        #         f"{porcentaje:.0f}%",
+        #         delta=f"{porcentaje - 50:.0f}%" if porcentaje >= 50 else f"{porcentaje - 50:.0f}%"
+        #     )
+        
+        # with col_analisis3:
+        #     tiempo_promedio = st.session_state.tiempo_total_evaluacion / 15
+        #     st.metric(
+        #         "Tiempo Promedio/Pregunta", 
+        #         f"{tiempo_promedio:.1f}s",
+        #         delta=f"{30 - tiempo_promedio:.1f}s restante"
+        #     )
+
+        # # Clasificación de rendimiento
+        # if porcentaje >= 80:
+        #     rendimiento = "🏆 Excelente"
+        #     color_rendimiento = "#4CAF50"
+        # elif porcentaje >= 70:
+        #     rendimiento = "👍 Bueno"
+        #     color_rendimiento = "#8BC34A"
+        # elif porcentaje >= 60:
+        #     rendimiento = "📈 Regular"
+        #     color_rendimiento = "#FFC107"
+        # else:
+        #     rendimiento = "📚 Necesita Mejorar"
+        #     color_rendimiento = "#FF9800"
+        
+        # st.markdown(f"""
+        # <div class="card-adaptive" style="border-left: 5px solid {color_rendimiento}; text-align: center;">
+        #     <h3>Clasificación de Rendimiento</h3>
+        #     <h2 style="color: {color_rendimiento}; margin: 10px 0;">{rendimiento}</h2>
+        # </div>
+        # """, unsafe_allow_html=True)
+
+        # st.markdown("""
+        # ### ¡Gracias por completar la evaluación!
+        # ✅ Tus respuestas han sido guardadas en la base de datos  
+        # ✅ Tu puntaje ha sido registrado  
+        # ✅ Los datos están disponibles para análisis  
+        # """)
+
+        # # Opción para reiniciar la evaluación
+        # if st.button("🔄 Realizar Nueva Evaluación"):
+        #     # Limpiar todo el estado
+        #     keys_to_clear = [
+        #         'preguntas_seleccionadas', 'preguntas_cargadas', 'respuestas_enviadas',
+        #         'puntaje_final', 'calificacion_final', 'evaluacion_iniciada',
+        #         'info_personal_validada', 'tiempo_total_evaluacion', 'respuestas_evaluacion',
+        #         'pregunta_actual', 'tiempo_inicio_pregunta', 'tiempo_inicio_total',
+        #         'auto_refresh_active', 'nombre_final', 'cedula_final'
+        #     ]
+        #     for key in keys_to_clear:
+        #         if key in st.session_state:
+        #             del st.session_state[key]
+        #     st.rerun()
 
 # ========= SIDEBAR CON INFORMACIÓN =========
 with st.sidebar:
     st.header("ℹ️ Información")
     st.markdown("""
     **Instrucciones:**
-    1. Completa tu información personal (solo números en cédula)
-    2. Haz clic en 'Comenzar Evaluación'
-    3. Responde cada pregunta en máximo 30 segundos
-    4. Si no respondes a tiempo, se avanza automáticamente
-    5. Al finalizar, se guardará tu evaluación
+    1. ✅ Completa tu información personal
+    2. 🚀 Haz clic en 'Comenzar Evaluación'
+    3. ⏱️ Responde cada pregunta en máximo 30 segundos
+    4. 🔄 El sistema se actualiza automáticamente
+    5. ⏭️ Avanza automáticamente si se agota el tiempo
+    6. 💾 Al finalizar, se guardará tu evaluación
     
     **Sistema de Puntuación:**
-    - Cada pregunta correcta = 1 punto
-    - Puntaje máximo = 15 puntos
-    - Tiempo límite: 30 segundos por pregunta
+    - ✅ Cada pregunta correcta = 1 punto
+    - 🎯 Puntaje máximo = 15 puntos
+    - ⏰ Tiempo límite: 30 segundos por pregunta
+    - 📊 Clasificación automática de rendimiento
     """)
     
     # Mostrar estadísticas de la sesión
@@ -714,17 +863,64 @@ with st.sidebar:
         st.metric("Puntaje Final", f"{st.session_state.puntaje_final}/15")
         st.metric("Porcentaje", f"{(st.session_state.puntaje_final/15)*100:.0f}%")
         st.metric("Tiempo Total", f"{formatear_tiempo(st.session_state.tiempo_total_evaluacion)}")
+        
+        # # Mostrar clasificación en sidebar también
+        # porcentaje = (st.session_state.puntaje_final/15)*100
+        # if porcentaje >= 80:
+        #     st.success("🏆 Rendimiento: Excelente")
+        # elif porcentaje >= 70:
+        #     st.success("👍 Rendimiento: Bueno")
+        # elif porcentaje >= 60:
+        #     st.warning("📈 Rendimiento: Regular")
+        # else:
+        #     st.info("📚 Rendimiento: Necesita Mejorar")
     
-    # Mostrar temporizador en sidebar si la evaluación está activa
+    # Mostrar información de la evaluación activa
     elif st.session_state.get('evaluacion_iniciada', False) and not st.session_state.respuestas_enviadas:
         st.markdown("---")
-        st.markdown("### ⏱️ Estado del Temporizador")
+        st.markdown("### 📈 Progreso Actual")
         if st.session_state.pregunta_actual < len(st.session_state.preguntas_seleccionadas):
-            tiempo_restante = tiempo_restante_pregunta()
-            st.metric("Tiempo restante", f"{formatear_tiempo(tiempo_restante)}")
-            st.progress(tiempo_restante / 30)
-            
-            # Mostrar estadísticas de progreso
-            st.markdown("### 📈 Progreso")
             respondidas = len(st.session_state.get('respuestas_evaluacion', {}))
-            st.metric("Preguntas respondidas", f"{respondidas}/15")
+            st.metric("Preguntas completadas", f"{respondidas}/15")
+            
+            # Calcular tiempo transcurrido total
+            if 'tiempo_inicio_total' in st.session_state:
+                tiempo_transcurrido = time.time() - st.session_state.tiempo_inicio_total
+                st.metric("Tiempo transcurrido", formatear_tiempo(tiempo_transcurrido))
+            
+            # Mostrar pregunta actual
+            st.metric("Pregunta actual", f"{st.session_state.pregunta_actual + 1}")
+            
+            # Mostrar tiempo restante de la pregunta actual
+            tiempo_restante = tiempo_restante_pregunta()
+            if tiempo_restante > 15:
+                st.success(f"⏰ Tiempo: {formatear_tiempo(tiempo_restante)}")
+            elif tiempo_restante > 5:
+                st.warning(f"⏰ Tiempo: {formatear_tiempo(tiempo_restante)}")
+            else:
+                st.error(f"⏰ Tiempo: {formatear_tiempo(tiempo_restante)}")
+    
+    # Estado de auto-refresh
+    if st.session_state.get('auto_refresh_active', False):
+        st.markdown("---")
+        st.markdown("### 🔄 Sistema")
+        st.success("✅ Auto-actualización activa")
+        if st.button("⏸️ Pausar Auto-refresh"):
+            st.session_state.auto_refresh_active = False
+            st.rerun()
+    elif st.session_state.get('evaluacion_iniciada', False):
+        st.markdown("---")
+        st.markdown("### 🔄 Sistema")
+        st.warning("⏸️ Auto-actualización pausada")
+        if st.button("▶️ Reanudar Auto-refresh"):
+            st.session_state.auto_refresh_active = True
+            st.rerun()
+
+# # ========= FOOTER CON INFORMACIÓN TÉCNICA =========
+# st.markdown("---")
+# st.markdown("""
+# <div style="text-align: center; color: #666; font-size: 12px; margin: 20px 0;">
+#     <p>🔧 <strong>Temporizador Optimizado</strong> - Compatible con todos los dispositivos</p>
+#     <p>⚡ Actualización automática cada segundo | 📱 Optimizado para móviles | 💾 Guardado automático</p>
+# </div>
+# """, unsafe_allow_html=True)
