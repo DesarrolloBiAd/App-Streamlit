@@ -420,9 +420,9 @@ def inicializar_temporizador():
         st.session_state.auto_refresh_active = True
 
 def tiempo_restante_pregunta():
-    """Calcula el tiempo restante para la pregunta actual (30 segundos)"""
+    """Calcula el tiempo restante para la pregunta actual (40 segundos)"""
     tiempo_transcurrido = time.time() - st.session_state.tiempo_inicio_pregunta
-    tiempo_restante = max(0, 30 - tiempo_transcurrido)
+    tiempo_restante = max(0, 40 - tiempo_transcurrido)
     return tiempo_restante
 
 def avanzar_pregunta():
@@ -460,7 +460,7 @@ def crear_display_temporizador_optimizado(tiempo_restante):
         clase_extra = "timer-card-danger"
     
     # Calcular porcentaje para barra de progreso
-    porcentaje = (tiempo_restante / 30) * 100
+    porcentaje = (tiempo_restante / 40) * 100
     
     return f"""
     <div class="card-adaptive timer-card {clase_extra}">
@@ -857,7 +857,7 @@ with st.sidebar:
     **Instrucciones:**
     1. ✅ Completa tu información personal
     2. 🚀 Haz clic en 'Comenzar Evaluación'
-    3. ⏱️ Responde cada pregunta en máximo 30 segundos
+    3. ⏱️ Responde cada pregunta en máximo 40 segundos
     4. 🔄 El sistema se actualiza automáticamente
     5. ⏭️ Avanza automáticamente si se agota el tiempo
     6. 💾 Al finalizar, se guardará tu evaluación
@@ -865,7 +865,7 @@ with st.sidebar:
     **Sistema de Puntuación:**
     - ✅ Cada pregunta correcta = 1 punto
     - 🎯 Puntaje máximo = 15 puntos
-    - ⏰ Tiempo límite: 30 segundos por pregunta
+    - ⏰ Tiempo límite: 40 segundos por pregunta
     - 📊 Clasificación automática de rendimiento
     """)
     
