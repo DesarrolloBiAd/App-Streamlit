@@ -61,6 +61,22 @@ st.markdown("""
         img {
             border-radius: 0 !important;
         }
+        
+        /* AUMENTAR TAMAÑO DE LETRA EN SELECTBOX */
+        .stSelectbox label p {
+            font-size: 18px !important;
+            font-weight: bold !important;
+        }
+        
+        /* Tamaño de letra en las opciones del dropdown */
+        .stSelectbox div[data-baseweb="select"] > div {
+            font-size: 16px !important;
+        }
+        
+        /* Tamaño de letra en el menú desplegable */
+        div[role="listbox"] li {
+            font-size: 16px !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -426,12 +442,19 @@ else:
                         break
                 
                 if pregunta_encontrada and opciones:
+                    # Mostrar la pregunta con tamaño de letra más grande
+                    st.markdown(f"""
+                    <div style="font-size: 20px; color: white;">
+                        {pregunta_encontrada}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                     # Agregar opción vacía al inicio
                     opciones_con_vacio = ["Seleccionar..."] + opciones
                     respuesta = st.selectbox(
-                        pregunta_encontrada, 
+                        "",  # Etiqueta vacía porque ya mostraste la pregunta arriba
                         opciones_con_vacio, 
-                        index=0,  # Forzar índice 0 (Seleccionar...)
+                        index=0,
                         key=f"pregunta_{contador_pregunta}_{st.session_state.session_counter}"
                     )
                     if respuesta != "Seleccionar...":
