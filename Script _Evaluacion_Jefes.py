@@ -122,10 +122,13 @@ def mostrar_cronometro():
         # Obtener el total de segundos y convertir correctamente
         total_segundos = int(tiempo_restante.total_seconds())
         
-        # Calcular días, horas y minutos
+        # Agregar 4 minutos (240 segundos) al total de segundos
+        total_segundos += 240  # 4 minutos = 240 segundos
+        
+        # Calcular días, horas y minutos correctamente
         dias = total_segundos // (24 * 3600)
         horas = (total_segundos % (24 * 3600)) // 3600
-        minutos = (((total_segundos % 3600)) // 60) + 4
+        minutos = (total_segundos % 3600) // 60
         
         # Determinar urgencia y color
         if dias <= 1:
