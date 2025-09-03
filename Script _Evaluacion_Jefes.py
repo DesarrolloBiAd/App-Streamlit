@@ -10,6 +10,7 @@ from supabase import create_client, Client
 st.set_page_config(
     page_title="Evaluación Promotores",
     page_icon="https://p3-ofp.static.pub//fes/cms/2025/01/16/7aiyjr6t3hszpzvsfnbwip54i0ovkz395647.png",
+    layout="wide"
 )
 
 # 🎨 Estilos personalizados
@@ -86,15 +87,10 @@ def load_image(image_path):
 # Inicializar session state para controlar el reset del formulario
 if 'form_submitted' not in st.session_state:
     st.session_state.form_submitted = False
-if 'reset_form' not in st.session_state:
-    st.session_state.reset_form = False
 
-# Reset del formulario después del envío
-if st.session_state.reset_form:
-    st.session_state.clear()
-    st.session_state.form_submitted = False
-    st.session_state.reset_form = False
-    st.rerun()
+# Contador de sesión para reset completo del formulario
+if 'session_counter' not in st.session_state:
+    st.session_state.session_counter = 0
 
 # Logos iniciales: Motorola y Adecco más grandes y alineados en extremos
 col1, col2, col3 = st.columns([2, 1, 2])
@@ -102,13 +98,13 @@ col1, col2, col3 = st.columns([2, 1, 2])
 with col1:
     # Cambia estas rutas por las de GitHub Raw o usa imágenes locales en la carpeta del proyecto
     try:
-        st.image("https://441041d6dc.imgdist.com/pub/bfra/989mykjl/ioe/8x8/qt0/Motorla%20540-170.png", width=300)
+        st.image("images/Motorla_540-170.png", width=300)
     except:
         st.write("Logo Motorola")
 
 with col3:
     try:
-        st.image("https://441041d6dc.imgdist.com/pub/bfra/989mykjl/3jw/n2n/7ki/Logo%20Adecco.png", width=300)
+        st.image("images/Logo_Adecco.png", width=300)
     except:
         st.write("Logo Adecco")
 
@@ -155,35 +151,40 @@ jefes_data = [
 
 df_jefes = pd.DataFrame(jefes_data)
 
-# Selección de región (sin selección por defecto)
+# Selección de región (sin selección por defecto) - con contador de sesión
 regiones = [""] + sorted(df_jefes["Regional"].unique())
-region_seleccionada = st.selectbox("Selecciona la Región", regiones, key="region")
+region_seleccionada = st.selectbox("Selecciona la Región", regiones, 
+                                   key=f"region_{st.session_state.session_counter}")
 
 if region_seleccionada:
     # Filtrar por región
     df_filtrado_region = df_jefes[df_jefes["Regional"] == region_seleccionada]
     
-    # Selección de cargo (sin selección por defecto)
+    # Selección de cargo (sin selección por defecto) - con contador de sesión
     cargos = [""] + sorted(df_filtrado_region["CARGO"].unique())
-    cargo_seleccionado = st.selectbox("Selecciona el Cargo", cargos, key="cargo")
+    cargo_seleccionado = st.selectbox("Selecciona el Cargo", cargos, 
+                                      key=f"cargo_{st.session_state.session_counter}")
     
     if cargo_seleccionado:
         # Filtrar por región y cargo
         df_filtrado_final = df_filtrado_region[df_filtrado_region["CARGO"] == cargo_seleccionado]
         
-        # Selección de jefe (sin selección por defecto)
+        # Selección de jefe (sin selección por defecto) - con contador de sesión
         jefes = [""] + sorted(df_filtrado_final["NOMBRE"].unique())
-        jefe_seleccionado = st.selectbox("Selecciona el Jefe", jefes, key="jefe")
+        jefe_seleccionado = st.selectbox("Selecciona el Jefe", jefes, 
+                                        key=f"jefe_{st.session_state.session_counter}")
     else:
         jefe_seleccionado = ""
 else:
     cargo_seleccionado = ""
     jefe_seleccionado = ""
 
-# Ingreso manual del nombre y cédula del vendedor
+# Ingreso manual del nombre y cédula del vendedor - con contador de sesión
 st.subheader("Datos del Promotor Evaluado")
-nombre_vendedor = st.text_input("Nombre del Promotor", key="nombre")
-cedula_vendedor = st.text_input("Cédula del Promotor", key="cedula")
+nombre_vendedor = st.text_input("Nombre del Promotor", 
+                               key=f"nombre_{st.session_state.session_counter}")
+cedula_vendedor = st.text_input("Cédula del Promotor", 
+                               key=f"cedula_{st.session_state.session_counter}")
 
 # Validación: solo números y longitud entre 6 y 10
 cedula_valida = True
@@ -216,24 +217,26 @@ if region_seleccionada and cargo_seleccionado and jefe_seleccionado:
         "15. ¿Identifica en el especialista actitudes de liderazgo que lo destaquen entre sus compañeros?":["Sí", "No"]
     }
 
-    # Crear claves únicas para cada radio button para evitar selecciones por defecto
+    # Crear claves únicas para cada radio button - con contador de sesión
     for i, (pregunta, opciones) in enumerate(preguntas_opcion_multiple.items()):
         # Agregar opción vacía al inicio
         opciones_con_vacio = ["Seleccionar..."] + opciones
-        respuesta = st.radio(pregunta, opciones_con_vacio, key=f"pregunta_{i}")
+        respuesta = st.radio(pregunta, opciones_con_vacio, 
+                            key=f"pregunta_{i}_{st.session_state.session_counter}")
         if respuesta != "Seleccionar...":
             respuestas[pregunta] = respuesta
         else:
             respuestas[pregunta] = None
 
-    # Pregunta de campo abierto
-    comentario_adicional = st.text_area("¿Tienes algún comentario adicional sobre el vendedor?", key="comentario")
+    # Pregunta de campo abierto - con contador de sesión
+    comentario_adicional = st.text_area("¿Tienes algún comentario adicional sobre el vendedor?", 
+                                       key=f"comentario_{st.session_state.session_counter}")
     respuestas["Comentario adicional"] = comentario_adicional
 
     # Validar que todas las preguntas estén respondidas
     preguntas_sin_responder = [p for p, r in respuestas.items() if r is None and p != "Comentario adicional"]
     
-    if st.button("Enviar encuesta", key="enviar"):
+    if st.button("Enviar encuesta", key=f"enviar_{st.session_state.session_counter}"):
         # Validaciones
         if not jefe_seleccionado or not nombre_vendedor or not cedula_vendedor:
             st.error("Por favor, completa todos los campos obligatorios antes de enviar.")
@@ -285,8 +288,8 @@ if region_seleccionada and cargo_seleccionado and jefe_seleccionado:
                 # Mostrar resultado
                 if registros_exitosos == len(filas):
                     st.success(f"✅ Encuesta enviada correctamente. Se guardaron {registros_exitosos} respuestas.")
-                    # Opcional: resetear el formulario después del envío exitoso
-                    st.session_state.reset_form = True
+                    # Incrementar contador de sesión para resetear el formulario
+                    st.session_state.session_counter += 1
                     time.sleep(2)
                     st.rerun()
                 elif registros_exitosos > 0:
