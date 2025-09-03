@@ -10,7 +10,6 @@ from supabase import create_client, Client
 st.set_page_config(
     page_title="Evaluación Promotores",
     page_icon="https://p3-ofp.static.pub//fes/cms/2025/01/16/7aiyjr6t3hszpzvsfnbwip54i0ovkz395647.png",
-    layout="wide"
 )
 
 # 🎨 Estilos personalizados
