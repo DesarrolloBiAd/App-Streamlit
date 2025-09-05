@@ -111,7 +111,7 @@ def verificar_fecha_limite():
     """Verificar si la encuesta aún está disponible"""
     colombia_tz = pytz.timezone('America/Bogota')
     ahora = datetime.datetime.now(colombia_tz)
-    fecha_limite = datetime.datetime(2025, 9, 6, 23, 59, 59, tzinfo=colombia_tz)
+    fecha_limite = datetime.datetime(2025, 9, 7, 23, 59, 59, tzinfo=colombia_tz)
     
     return ahora <= fecha_limite, fecha_limite, ahora
 
@@ -126,7 +126,7 @@ def mostrar_cronometro():
         st.markdown(f"""
         <div style="text-align: center; background-color: #ff4757; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
             <h3>⏰ La encuesta ha finalizado</h3>
-            <p><strong>Fecha límite:</strong> Sábado 6 de Septiembre, 11:59 PM (Hora Colombia)</p>
+            <p><strong>Fecha límite:</strong> Domingo 7 de Septiembre, 11:59 PM (Hora Colombia)</p>
             <p><strong>Hora actual:</strong> {ahora.strftime('%d/%m/%Y - %H:%M')} (Colombia)</p>
         </div>
         """, unsafe_allow_html=True)
@@ -203,7 +203,7 @@ def mostrar_cronometro():
         # Información adicional
         st.markdown(f"""
         <div style="text-align: center; background-color: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>📅 Fecha límite:</strong> Sábado 6 de Septiembre, 11:59 PM (Hora Colombia)</p>
+            <p><strong>📅 Fecha límite:</strong> Domingo 7 de Septiembre, 11:59 PM (Hora Colombia)</p>
             <p><strong>🕒 Hora actual:</strong> {ahora.strftime('%d/%m/%Y - %H:%M')} (Colombia)</p>
         </div>
         """, unsafe_allow_html=True)
